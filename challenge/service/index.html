@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offlinea</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --pixel-green: #3dfc03;
+            --pixel-bg: #1a1a1a;
+            --window-border: #888;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            font-family: 'Press Start 2P', cursive;
+            color: white;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-image: url("/images/bar.png"); 
+            background-repeat: no-repeat;
+            background-size: cover;
+            background-position: center;
+        }
+
+        #game-viewport {
+            width: 40%;
+            height: 90%;
+            position: relative;
+            border: 10px solid var(--window-border);
+            /* Retro Pixelated Background */
+            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('/images/bartender.jpg');
+            background-size: cover;
+            background-position: center;
+            image-rendering: pixelated;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        #game-viewport::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 3px, 3px 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #dialogue-box {
+            background: rgba(0, 0, 0, 0.85);
+            border: 4px solid #fff;
+            margin: 20px;
+            padding: 20px;
+            min-height: 100px;
+            z-index: 5;
+            position: relative;
+        }
+
+        #text-content {
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        #interaction-bar {
+            background: #222;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            border-top: 4px solid var(--window-border);
+            z-index: 5;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 20px;
+        }
+
+        input[type="text"] {
+            flex-grow: 1;
+            background: #000;
+            border: 2px solid var(--pixel-green);
+            color: var(--pixel-green);
+            padding: 5px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 12px;
+            outline: none;
+            height:30px
+        }
+
+        button {
+            background: var(--pixel-green);
+            color: #000;
+            border: none;
+            padding: 5px 10px;
+            font-family: 'Press Start 2P', cursive;
+            cursor: pointer;
+            transition: 0.1s;
+            align-self: flex-start;
+            height: 40px;
+        }
+
+        button:active {
+            transform: scale(0.95);
+            background: white;
+        }
+
+        .loading-cursor {
+            display: inline-block;
+            width: 10px;
+            height: 18px;
+            background: var(--pixel-green);
+            animation: blink 0.8s infinite;
+        }
+
+        @keyframes blink { 50% { opacity: 0; } }
+    </style>
+</head>
+<body>
+
+<div id="game-viewport">
+    <div id="dialogue-box">
+        <div id="text-content">TELL ME. WHAT DO YOU WANT TODAY? YOU KNOW THE RULES RIGHT!.</div>
+    </div>
+
+    <div id="interaction-bar">
+        <input type="text" id="url-input" placeholder="URL" autocomplete="on">
+        <input type="text" id="name-input" placeholder="JUST TELL ME YOUR NAME" autocomplete="on">
+        <input type="text" id="secret-input" placeholder="YOUR LITTLE SECRET" autocomplete="on">
+        <button onclick="handleSearch()">SUBMIT</button>
+    </div>
+</div>
+
+<script>
+    const textEl = document.getElementById('text-content');
+    const urlInput = document.getElementById('url-input');
+    const nameInput = document.getElementById('name-input');
+    const secretInput = document.getElementById('secret-input');
+
+    async function handleSearch() {
+        const urlValue = urlInput.value.trim();
+        const nameValue = nameInput.value.trim();
+        const secretValue = secretInput.value.trim();
+        if (!urlValue) {
+            updateDialogue("PLEASE PROVIDE A VALID URL, TRAVELER.");
+            return;
+        }
+        if(!secretValue){
+            updateDialogue("NO SECRETS, NO PROBLEM. NEXT PLEASE...");
+        }
+        if(!nameValue){
+            updateDialogue("NO NAME, NO PROBLEM. NEXT PLEASE...");
+        }
+
+        const params = new URLSearchParams({ url: urlValue, secret: secretValue || "", name: nameValue || "" });
+        // Phase 1: Interaction
+        updateDialogue("LET ME SEARCH THE STACKS FOR YOU... <span class='loading-cursor'></span>");
+        urlInput.value = "";
+        nameInput.value = "";
+        secretInput.value = "";
+
+        try {
+            fetch('/bartender.php?' + params)
+            .then(res => res.blob())
+            .then(blob => {
+                // Success "loot" drop
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const downloadLink = `<a href="${downloadUrl}" download="PEEK.pdf" style="color: var(--pixel-green); text-decoration: underline;">HERE CHECK IT OUT.</a>`;
+                updateDialogue(`IS THIS WHAT YOU WANT. SAFE TRAVELS, FRIEND!<br><br>${downloadLink}`);
+            });
+        } catch (error) {
+            console.error("API Error:", error);
+            setTimeout(() => {
+                updateDialogue("I COULDN'T FIND ANYTHING. SORRY.");
+            }, 1500);
+        }
+    }
+
+    function updateDialogue(msg) {
+        textEl.innerHTML = msg;
+    }
+</script>
+
+</body>
+</html>
